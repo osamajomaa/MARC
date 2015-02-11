@@ -1,0 +1,3 @@
+data/
+utils/db_creds.txt
+*.pyc
