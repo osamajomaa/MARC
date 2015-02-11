@@ -1,4 +1,4 @@
-# MARC - A Mouse Human Research Classifier
+## MARC - A Mouse Human Research Classifier
 
 MARC is software tool that classifies biomedical literature and proteins into different classes of research and biological systems respectively. It comprises two parts:
 
