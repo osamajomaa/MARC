@@ -4,9 +4,8 @@ from Bio import Entrez
 from Bio import SeqIO
 import cPickle as cp
 import Mesh_Categories as MC
-import Protein
-import Paper
-import MeshTerm
+import MeshTerm as MT
+from sets import Set
 
 Entrez.email = "jomaao@miamioh.edu"
 
@@ -57,7 +56,7 @@ def GetMouseProteinData(gaf_file, go_obo_file, uniprot_prots, mouse_homologs):
                 pmid = dbref[5:]
                 if pmid not in pmids:
                     pmids.append(pmid)
-        prot_pmid_go[prot] = Protein.Protein(prot, organism, seq, go_terms, pmids, homologs)
+        prot_pmid_go[prot] = PT.Protein(prot, organism, seq, go_terms, pmids, homologs)
     print "Number of unfound proteins = ", protCount
     output_handle = open("data/mouse_proteins.pik", "w")
     cp.dump(prot_pmid_go, output_handle)
@@ -93,7 +92,7 @@ def GetHumanProteinData(hu_prots, hu_go, go_obo_file, mohuHits):
                     go_terms.append((term, hu_go[protein][1][term].split(":")[0], GO[term][0], GO[term][1]))
                 else:
                     go_terms.append((term, hu_go[protein][1][term].split(":")[0], "", ""))
-        prot_pmid_go[protein] = Protein.Protein(protein, organism, seq, go_terms, pmids, [])
+        prot_pmid_go[protein] = PT.Protein(protein, organism, seq, go_terms, pmids, [])
     output_handle = open("data/human_proteins.pik", "w")
     cp.dump(prot_pmid_go, output_handle)
     output_handle.close()
@@ -135,11 +134,11 @@ def GetPaperData(pmid_refs):
     pmid_data = {}
     for pmid in pmid_refs:
         paperData = GetSinglePaperData(pmid)
-        pmid_data[pmid] = Paper.Paper(pmid, paperData[2], pmid_refs[pmid], paperData[0], paperData[1])
+        pmid_data[pmid] = PP.Paper(pmid, paperData[2], pmid_refs[pmid], paperData[0], paperData[1])
         for ref_pmid in pmid_refs[pmid]:
             if ref_pmid not in pmid_data and ref_pmid not in pmid_refs:
                 paperData = GetSinglePaperData(ref_pmid)
-                pmid_data[ref_pmid] = Paper.Paper(ref_pmid, paperData[2], [], paperData[0], paperData[1])
+                pmid_data[ref_pmid] = PP.Paper(ref_pmid, paperData[2], [], paperData[0], paperData[1])
     output_handle = open("data/papers.pik", "w")
     cp.dump(pmid_data, output_handle)
     output_handle.close()
@@ -162,25 +161,39 @@ def ParseMouseFasta(uniprot_mouse):
 
 def GetMeshData(mesh_tree):
     meshData = {}
+    MD = {}
     with open(mesh_tree) as f:
         for line in f:
             line = line.strip()
-            meshTerm = line.split(';')[0]
-            level = len(line.split(';')[1].split('.'))
-            termID = line.split(';')[1].split('.')[level-1]
-            category = MC.Mesh_Cats[line.split(';')[1][0]]
-            ancestors = line.split(';')[1].split('.')[0:level-1]
-            ancesCount = len(ancestors)
+            sc = line.index(';')
+            i = len(line)-1
+            ancestors = []
+            while i > sc:
+                if line[i] == '.':
+                    ancestors.append(line[sc+1:i])
+                i -= 1
+            meshTerm = line[:sc]
+            termID = line[sc+1:]
+            category = MC.Mesh_Cats[line[sc+1]]
             parent = ""
-            if ancesCount > 0:
-                parent = ancestors[ancesCount-1]
+            if len(ancestors) > 0:
+                parent = ancestors[0]
+            
+            MD[termID] = meshTerm
             if meshTerm not in meshData:
-                meshData[meshTerm] = MeshTerm.MeshTerm(termID, meshTerm, category, parent, ancestors)
+                meshData[meshTerm] = MT.MeshTerm(termID, meshTerm, category, parent, ancestors)
             else:
                 meshData[meshTerm].category.append(category)
                 meshData[meshTerm].parent.append(parent)
                 meshData[meshTerm].ancestors.append(ancestors)
-    output_handle = open("data/mesh_data.pik", "w")
+    
+    for term in meshData:
+        ancSet = Set()
+        for ancs in meshData[term].ancestors:
+            for anc in ancs:
+                ancSet.add(MD[anc])
+        meshData[term].ancestors = list(ancSet)
+    output_handle = open("../data/mesh_data2.pik", "w")
     cp.dump(meshData, output_handle)
     output_handle.close()
     return meshData
@@ -211,7 +224,7 @@ if __name__ == "__main__":
     '''
     
     
-    mesh_tree = "mesh_tree.bin"
+    mesh_tree = "../data/mesh_tree.bin"
     GetMeshData(mesh_tree)
     
     '''

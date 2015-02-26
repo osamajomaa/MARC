@@ -1,7 +1,5 @@
-import DB
-import Protein
 import cPickle
-
+import DB
 DATABASE_NAME = "MarcDB"
 
 def dump_proteins(proteinList, db):
@@ -36,15 +34,16 @@ def dump_MeshTerms(termList, db):
 
 if __name__ == "__main__":
     #huProts = cPickle.load(open("data/human_proteins.pik"))
-    mesh = cPickle.load(open("data/mesh_data.pik"))
+    #mesh = cPickle.load(open("../data/mesh_data2.pik"))
     #huProts = cPickle.load(open("data/human_proteins.pik"))
     #papers  = cPickle.load(open("data/papers.pik"))
     #terms   = cPickle.load(open("data/mesh_data.pik"))
     
     dbClient = DB.Connect()
     db = DB.GetDatabase(dbClient, DATABASE_NAME)
-    
-    dump_MeshTerms(mesh, db)
+    paper_cits = cPickle.load(open("../data/paper_cits.pik"))
+    DB.update(paper_cits, db)
+    #dump_MeshTerms(mesh, db)
     #dump_proteins(huProts, db)
     #dump_papers(papers, db)
     #dump_MeshTerms(terms, db)

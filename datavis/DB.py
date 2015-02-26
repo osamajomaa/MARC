@@ -1,4 +1,5 @@
 import pymongo
+from sets import Set
 
 def Connect():
     f = open("../utils/db_creds.txt")
@@ -70,35 +71,26 @@ def InsertMeshTerm(term, db):
 
 def getAll(projects, collName, db):
     coll = db[collName]
-    data = coll.find({},projects)
+    data = []
+    if len(projects) == 0:
+        data = coll.find()
+    else:
+        data = coll.find({}, projects)
     return data
 
 
 def find(projects, collName, query, db):
     data = []
     coll = db[collName]
-    rowData = coll.find(query, projects)
-    for rowDatum in rowData:
-        datum = {}
-        for proj in projects:
-            datum[proj] = rowDatum[proj]
-        data.append(datum)
+    data = coll.find(query, projects)
+    return data
     
-
-def update(paper_cits, db):
-    coll = db["Paper"]
-    i = 1
-    for paper in paper_cits.keys():
-        coll.update({"PMID":paper}, {"$set": {"CitedBy":paper_cits[paper]}})
-        print i
-        i += 1
-
+    
 def findByAncestor(anc, db):
     coll = db["MeshTerm"]
     data = coll.find({"Parents.Parent":{"$in":anc}})
-    terms = []
+    terms = Set()
     for datum in data:
-        terms.add(datum["Name"])
+        terms.add(str(datum["Name"]))
     return terms
 
-    
