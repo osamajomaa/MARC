@@ -1,5 +1,8 @@
 import cPickle
 import DB
+import sys
+sys.path.append("../objects")
+import MeshTerm
 DATABASE_NAME = "MarcDB"
 
 def dump_proteins(proteinList, db):
@@ -41,8 +44,10 @@ if __name__ == "__main__":
     
     dbClient = DB.Connect()
     db = DB.GetDatabase(dbClient, DATABASE_NAME)
-    paper_cits = cPickle.load(open("../data/paper_cits.pik"))
-    DB.update(paper_cits, db)
+    terms   = cPickle.load(open("../data/mesh_data_final.pik"))
+    dump_MeshTerms(terms, db)
+    #paper_cits = cPickle.load(open("../data/paper_cits.pik"))
+    #DB.update(paper_cits, db)
     #dump_MeshTerms(mesh, db)
     #dump_proteins(huProts, db)
     #dump_papers(papers, db)

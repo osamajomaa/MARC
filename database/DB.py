@@ -1,4 +1,5 @@
 import pymongo
+from sets import Set
 
 def Connect():
     f = open("../utils/db_creds.txt")
@@ -57,10 +58,17 @@ def InsertMeshTerm(term, db):
         i += 1
     i = 1
     ancestorDoc= []
-    for anc in term.ancestors:
-        ancestorDoc.append({"Branch": i, "Ancestors":anc})
+    for ancs in term.ancestors:
+        for anc in ancs:
+            ancestorDoc.append({"Branch": i, "Ancestors":anc})
         i += 1
-    termDoc = {"TID":                   term.tid, 
+    i = 1
+    tids = []
+    for tid in term.tid:
+        tids.append({"Branch":i, "TID":tid})
+        i += 1
+        
+    termDoc = {"TID":                   tids, 
                "Name":                  term.name,
                "Categories":            catDoc,
                 "Parents":              parentDoc,
@@ -70,7 +78,7 @@ def InsertMeshTerm(term, db):
 
 def getAll(projects, collName, db):
     coll = db[collName]
-    data = coll.find({},projects)
+    data = coll.find({})
     return data
 
 
@@ -96,9 +104,21 @@ def update(paper_cits, db):
 def findByAncestor(anc, db):
     coll = db["MeshTerm"]
     data = coll.find({"Parents.Parent":{"$in":anc}})
-    terms = []
+    terms = Set()
     for datum in data:
         terms.add(datum["Name"])
     return terms
+
+def findTermsAtDepth(db, depth, cat):
+    coll = db["MeshTerm"]
+    terms = coll.find({})
+    data = Set()
+    for term in terms:
+        for tid in term["TID"]:
+            if tid["TID"][:3] == cat and tid["TID"].count(".") >= depth-1:
+                data.add(term["Name"])
+    return data
+
+
 
     

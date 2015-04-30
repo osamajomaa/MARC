@@ -3,6 +3,8 @@ import go_obo_parser as gop
 from Bio import Entrez
 from Bio import SeqIO
 import cPickle as cp
+import sys
+sys.path.append("../objects")
 import Mesh_Categories as MC
 import MeshTerm as MT
 from sets import Set
@@ -181,19 +183,23 @@ def GetMeshData(mesh_tree):
             
             MD[termID] = meshTerm
             if meshTerm not in meshData:
-                meshData[meshTerm] = MT.MeshTerm(termID, meshTerm, category, parent, ancestors)
+                meshData[meshTerm] = MT.MeshTerm([termID], meshTerm, category, parent, ancestors)
             else:
                 meshData[meshTerm].category.append(category)
                 meshData[meshTerm].parent.append(parent)
+                meshData[meshTerm].tid.append(termID)
                 meshData[meshTerm].ancestors.append(ancestors)
+                
     
     for term in meshData:
-        ancSet = Set()
+        ancList = []
         for ancs in meshData[term].ancestors:
+            ancSet = Set()
             for anc in ancs:
                 ancSet.add(MD[anc])
-        meshData[term].ancestors = list(ancSet)
-    output_handle = open("../data/mesh_data2.pik", "w")
+            ancList.append(list(ancSet))
+        meshData[term].ancestors = ancList
+    output_handle = open("../data/mesh_data_final.pik", "w")
     cp.dump(meshData, output_handle)
     output_handle.close()
     return meshData
@@ -215,7 +221,8 @@ if __name__ == "__main__":
     human_go = cp.load(open("human_go.pik"))
     obo_file = "go.obo"
     homolog_prots = cp.load(open("mohuHits.pik"))
-    data = GetHumanProteinData(human_prots, human_go, obo_file, homolog_prots)
+    data = GetHumanProteinData(human_prots, human_g    for term in meshData:
+o, obo_file, homolog_prots)
     '''
     
     '''

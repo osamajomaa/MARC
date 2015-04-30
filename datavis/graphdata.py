@@ -1,11 +1,16 @@
+import sys
+sys.path.append("../objects")
+sys.path.append("../database")
+import Paper
+import operator
 import DB as dbase
+from collections import OrderedDict
+
 from sets import Set
-import xml.dom.minidom as minidom
 import os
 from xml.etree.ElementTree import Element, SubElement, tostring
-import xml.etree.ElementTree as ET
 import cPickle
-import MeshTerm
+
 
 DATABASE_NAME = "MarcDB"
 
@@ -74,6 +79,12 @@ def getpathCondsCats(ancs):
     db = dbase.GetDatabase(dbClient, DATABASE_NAME)
     res = dbase.findByAncestor(ancs, db)
     return res
+
+def getTermsAtDepth(depth, cat):
+    dbClient = dbase.Connect()
+    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
+    res = dbase.findTermsAtDepth(db, depth, cat)
+    return res
     
 
 def writeXML(root, output):
@@ -99,10 +110,93 @@ def cited(paper_id, pmid):
     return False
 
 
-def createPaperDiseaseGEXF():
+
+def createCatFile(depth, cat, fileName):
+    meshData = cPickle.load(open("../data/mesh_data2.pik"))
+    paper_cats = OrderedDict()
+    pathConds = getTermsAtDepth(depth, cat)
+    print len(pathConds)
+    for cond in pathConds:
+        paper_cats[cond] = Set()
+    dbClient = dbase.Connect()
+    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
+    papers = dbase.getAll({},"Paper", db)
+    count = 0
+    for paper in papers:
+        #descSet = Set()
+        if "MeshHeadings" in paper:
+            for term in paper["MeshHeadings"]:
+                if term["Descriptor"] in meshData and term["Descriptor"] in pathConds:
+                    paper_cats[term["Descriptor"]].add(paper["PMID"])
+        print count
+        count += 1;
+    
+    paper_count = OrderedDict()
+    for cat in paper_cats:
+        paper_count[cat] = len(paper_cats[cat])
+    
+    paper_count = OrderedDict(sorted(paper_count.iteritems(), key=operator.itemgetter(1), reverse=True))
+    
+    fHandler = open(fileName, 'w')
+    cPickle.dump(paper_count, fHandler)
+    fHandler.close()
+    print "Finish!"
+    
+
+def createGEXFWithDepth(catFile, top, fileName):
     meshData = cPickle.load(open("../data/mesh_data2.pik"))
     root = createGEXFHeader()
-    pathConds = getpathCondsCats(["C23"])
+    cfile = cPickle.load(open(catFile))
+    pathConds = cPickle.load(open(catFile)).keys()[:top]
+    graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
+    attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
+    createXMLElement(attributes, 'attribute', '', {'id':'2', 'title':'Descriptors', 'type':'string'})
+    dbClient = dbase.Connect()
+    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
+    papers = dbase.getAll({},"Paper", db)
+    nodes = createXMLElement(graph, 'nodes', '', {})
+    count = 0
+    paper_id = {}
+    for paper in papers:
+        descStr= ""
+        if "MeshHeadings" in paper:
+            for term in paper["MeshHeadings"]:
+                if term["Descriptor"] in meshData and term["Descriptor"] in pathConds:
+                    descStr += term["Descriptor"] + '&'
+        if len(descStr) > 0:
+            descStr = descStr[:-1]
+            if '&' not in descStr:
+                paper_id[paper["PMID"]] = (str(count), paper["Citations"], "sin", descStr)
+            else:
+                paper_id[paper["PMID"]] = (str(count), paper["Citations"], "mul", descStr)
+            node = createXMLElement(nodes, 'node', '', {"id":str(count), "label":paper["PMID"]})
+            attvalues = createXMLElement(node, 'attvalues', '', {})
+            createXMLElement(attvalues, 'attvalue', '', {"for":"2", "value": descStr})
+            print count
+            count = count + 1
+        
+    edges = createXMLElement(graph, 'edges', '', {})
+    count = 0
+    for pmid in paper_id:
+        source = paper_id[pmid][0]
+        for cit in paper_id[pmid][1]:
+            if cit in paper_id:
+                target = paper_id[cit][0]
+                if paper_id[pmid][3] == paper_id[cit][3] and paper_id[pmid][2]=="sin" and paper_id[cit][2]=="sin":                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+                    createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":target, "weight":"1.0"})
+                elif paper_id[pmid][3] != paper_id[cit][3] and paper_id[pmid][2]=="sin" and paper_id[cit][2]=="sin":                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+                    createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":target, "weight":"2.0"})
+                else:
+                    createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":target, "weight":"3.0"})
+                count += 1
+            
+    writeXML(root,fileName)
+    
+
+def createPaperDiseaseGEXF(catFile, top):
+    meshData = cPickle.load(open("../data/mesh_data2.pik"))
+    root = createGEXFHeader()
+    pathConds = getpathCondsCats(["C04"])
     graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
     attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
     createXMLElement(attributes, 'attribute', '', {'id':'1', 'title':'PubTypes', 'type':'string'})
@@ -115,6 +209,7 @@ def createPaperDiseaseGEXF():
     count = 0
     paper_id = {}
     for paper in papers:
+        #print paper
         pubTypes = Set()
         if "PubTypes" in paper:
             for ptype in paper["PubTypes"]:
@@ -325,12 +420,16 @@ def createPapersGEXF():
             if cit in paper_id:                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
                 createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":paper_id[cit][0]})
                 count += 1
-            
+            ../data/
     writeXML(root,'output.xml')
 '''
 
 if __name__ == "__main__":
-    print os.getcwd()
-    createPaperDiseaseGEXF()
+    #print os.getcwd()
+    #createCatFile(3, "C16", "../data/FamousCats/cogenitalOrdered.pik")
+    #createGEXFWithDepth("../data/FamousCats/cogenitalOrdered.pik", 10, "../data/FamousCats/GraphFiles/cogenitalDisease.gexf")
+    createGEXFWithDepth("../data/FamousCats/digestiveOrdered.pik", 10, "../data/FamousCats/GraphFiles/digestiveDisease.gexf")
+    #createGEXFWithDepth("../data/FamousCats/neuroSystemOrdered.pik", 10, "../data/FamousCats/GraphFiles/neuroSystemDisease.gexf")
+    #createGEXFWithDepth("../data/FamousCats/nutritionalOrdered.pik", 10, "../data/FamousCats/GraphFiles/nutritionalDisease.gexf")
     
     
