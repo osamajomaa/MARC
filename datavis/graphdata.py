@@ -143,7 +143,7 @@ def createCatFile(depth, cat, fileName):
     print "Finish!"
     
 
-def createGEXFWithDepth(catFile, top, fileName):
+def createGEXFWithDepth(catFile, top, fileName, edge_file):
     meshData = cPickle.load(open("../data/mesh_data2.pik"))
     root = createGEXFHeader()
     cfile = cPickle.load(open(catFile))
@@ -151,12 +151,14 @@ def createGEXFWithDepth(catFile, top, fileName):
     graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
     attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
     createXMLElement(attributes, 'attribute', '', {'id':'2', 'title':'Descriptors', 'type':'string'})
+    createXMLElement(attributes, 'attribute', '', {'id':'3', 'title':'MeshCat', 'type':'string'})
     dbClient = dbase.Connect()
     db = dbase.GetDatabase(dbClient, DATABASE_NAME)
     papers = dbase.getAll({},"Paper", db)
     nodes = createXMLElement(graph, 'nodes', '', {})
     count = 0
     paper_id = {}
+    cited_nodes = Set()
     for paper in papers:
         descStr= ""
         if "MeshHeadings" in paper:
@@ -165,6 +167,7 @@ def createGEXFWithDepth(catFile, top, fileName):
                     descStr += term["Descriptor"] + '&'
         if len(descStr) > 0:
             descStr = descStr[:-1]
+            cited_nodes.update(paper["Citations"])
             if '&' not in descStr:
                 paper_id[paper["PMID"]] = (str(count), paper["Citations"], "sin", descStr)
             else:
@@ -172,16 +175,41 @@ def createGEXFWithDepth(catFile, top, fileName):
             node = createXMLElement(nodes, 'node', '', {"id":str(count), "label":paper["PMID"]})
             attvalues = createXMLElement(node, 'attvalues', '', {})
             createXMLElement(attvalues, 'attvalue', '', {"for":"2", "value": descStr})
+            if '&' in descStr:
+                createXMLElement(attvalues, 'attvalue', '', {"for":"3", "value": "Many"})
+            else:
+                createXMLElement(attvalues, 'attvalue', '', {"for":"3", "value": descStr})
             print count
             count = count + 1
         
     edges = createXMLElement(graph, 'edges', '', {})
     count = 0
+    cat_record = {}
+    ''' cat_record[cat](0, 1, 2, 3, 4) = (total number of citations in category cat,
+                                        number of intra citations in category cat,
+                                        number of inter-citing citations between category cat and other category,
+                                        number of inter-cited citations between category cat and other category,
+                                        number of isolated nodes annotated to category cat,
+                                        total number of papers annotated to category cat)
+    '''
+    for cat in pathConds:
+        cat_record[cat] = [0,0,0,0,0,0]
     for pmid in paper_id:
         source = paper_id[pmid][0]
+        isolated = True
         for cit in paper_id[pmid][1]:
             if cit in paper_id:
+                isolated = False
                 target = paper_id[cit][0]
+                for cat in pathConds:
+                    if cat in paper_id[pmid][3] or cat in paper_id[cit][3]:
+                        if cat in paper_id[pmid][3] and cat in paper_id[cit][3]:
+                            cat_record[cat][1] += 1
+                        elif cat in paper_id[pmid][3]:
+                            cat_record[cat][2] += 1
+                        elif cat in paper_id[cit][3]:
+                            cat_record[cat][3] += 1
+                        cat_record[cat][0] += 1                        
                 if paper_id[pmid][3] == paper_id[cit][3] and paper_id[pmid][2]=="sin" and paper_id[cit][2]=="sin":                                                                                                                                                                                                                                                                                                                                                                                                                                                  
                     createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":target, "weight":"1.0"})
                 elif paper_id[pmid][3] != paper_id[cit][3] and paper_id[pmid][2]=="sin" and paper_id[cit][2]=="sin":                                                                                                                                                                                                                                                                                                                                                                                                                                                  
@@ -189,8 +217,15 @@ def createGEXFWithDepth(catFile, top, fileName):
                 else:
                     createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":target, "weight":"3.0"})
                 count += 1
-            
+        for cat in pathConds:
+            if cat in paper_id[pmid][3]:
+                cat_record[cat][5] += 1
+                if isolated and pmid not in cited_nodes:
+                    cat_record[cat][4] += 1 
     writeXML(root,fileName)
+    fHandler = open(edge_file, 'w')
+    cPickle.dump(cat_record, fHandler)
+    fHandler.close()
     
 
 def createPaperDiseaseGEXF(catFile, top):
@@ -426,10 +461,29 @@ def createPapersGEXF():
 
 if __name__ == "__main__":
     #print os.getcwd()
-    #createCatFile(3, "C16", "../data/FamousCats/cogenitalOrdered.pik")
-    #createGEXFWithDepth("../data/FamousCats/cogenitalOrdered.pik", 10, "../data/FamousCats/GraphFiles/cogenitalDisease.gexf")
-    createGEXFWithDepth("../data/FamousCats/digestiveOrdered.pik", 10, "../data/FamousCats/GraphFiles/digestiveDisease.gexf")
-    #createGEXFWithDepth("../data/FamousCats/neuroSystemOrdered.pik", 10, "../data/FamousCats/GraphFiles/neuroSystemDisease.gexf")
-    #createGEXFWithDepth("../data/FamousCats/nutritionalOrdered.pik", 10, "../data/FamousCats/GraphFiles/nutritionalDisease.gexf")
+    #createCatFile(3, "C04", "../data/FamousCats/neoplasmOrdered.pik")
+    #createGEXFWithDepth("../data/FamousCats/neoplasmOrdered.pik", 10, "../data/FamousCats/GraphFiles/Neoplasm.gexf")
+    #createGEXFWithDepth("../data/FamousCats/animalDiseaseOrdered.pik", 10, "../data/FamousCats/GraphFiles/animalDisease.gexf", "../data/Edge_Desc/animal_edge_desc.pik")
+    #createGEXFWithDepth("../data/FamousCats/cogenitalOrdered.pik", 10, "../data/FamousCats/GraphFiles/cogenitalDisease.gexf", "../data/Edge_Desc/congenital_edge_desc.pik")
+    #createGEXFWithDepth("../data/FamousCats/digestiveOrdered.pik", 10, "../data/FamousCats/GraphFiles/digestiveDisease.gexf", "../data/Edge_Desc/digestive_edge_desc.pik")
+    #createGEXFWithDepth("../data/FamousCats/neuroSystemOrdered.pik", 10, "../data/FamousCats/GraphFiles/neuroSystemDisease.gexf", "../data/Edge_Desc/neuro_edge_desc.pik")
+    #createGEXFWithDepth("../data/FamousCats/nutritionalOrdered.pik", 10, "../data/FamousCats/GraphFiles/nutritionalDisease.gexf", "../data/Edge_Desc/nutritional_edge_desc.pik")
+    
+    
+    dict = cPickle.load(open("../data/Edge_Desc/neoplasm_edge_desc.pik"))
+    
+    sum = 0
+    allSum = 0
+    for a in dict:
+        v1 = float(dict[a][1])/(dict[a][0])
+        v2 = float(dict[a][2]+dict[a][3])/(dict[a][0])
+        print "Intra = " + str(v1)
+        print "Inter = " + str(v2)
+        print "----------"
+    
+    #print sum
+    #print "all", str(allSum)
+    
+    #print dict
     
     
