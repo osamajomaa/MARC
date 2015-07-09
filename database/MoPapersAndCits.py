@@ -1,3 +1,11 @@
+"""
+Author: Osama Jomaa
+
+This module parses the gene association files and fasta files to extract data about mouse and human 
+papers and proteins and store them in flat files
+"""
+
+
 from Bio.UniProt import GOA
 import go_obo_parser as gop
 from Bio import Entrez
@@ -12,9 +20,17 @@ from sets import Set
 Entrez.email = "jomaao@miamioh.edu"
 
 def GetMouseProteinData(gaf_file, go_obo_file, uniprot_prots, mouse_homologs):
-    """
-    This method retrieves the papers, go terms, organism and sequence for each protein a gene association file.
-    @param gaf_file: Uniprot_GOA association file in gaf format.
+    """ Extract the papers, go terms, organism and sequence for each mouse protein in a gene association
+     file and writes them into mouse_proteins flat file on disk
+    
+    Args:
+        gaf_file: Uniprot_GOA association file in gaf format
+        go_obo_file: The file that contains the whole gene ontology in obo format
+        uniprot_prots: mouse protein sequences in uniprot database
+        mouse_homologs: Mouse homologous proteins from BLAST
+    
+    Returns:
+        None
     """
     unigoa_file = open(gaf_file)
     GO = GetGO(go_obo_file)
@@ -65,6 +81,7 @@ def GetMouseProteinData(gaf_file, go_obo_file, uniprot_prots, mouse_homologs):
     output_handle.close()
     return prot_pmid_go
 
+
 def GetGO(go_obo_file):
     go = {}
     for go_term in gop.parseGOOBO(go_obo_file):
@@ -73,7 +90,18 @@ def GetGO(go_obo_file):
     return go
 
 
-def GetHumanProteinData(hu_prots, hu_go, go_obo_file, mohuHits):
+def GetHumanProteinData(hu_prots, hu_go, go_obo_file):
+    """ Build the human protein flat file from human fasta file and writes it to disk with the name
+    human_proteins.pik
+    
+    Args:
+        hu_prots: Human protein fasta file
+        go_obo_file: The file that contains the whole gene ontology in obo format
+        hu_go: Dictionary that maps human proteins to GO terms
+    
+    Returns:
+        None
+    """
     GO = GetGO(go_obo_file)
     prot_pmid_go = {}
     for seq_record in SeqIO.parse(hu_prots, "fasta"):
@@ -81,13 +109,7 @@ def GetHumanProteinData(hu_prots, hu_go, go_obo_file, mohuHits):
         pmids = seq_record.description.split()[1].split(';')
         seq = seq_record.seq
         go_terms = []
-        #homologs = []
         organism = "Human"
-        '''
-        if protein in mohuHits:
-            homologs = mohuHits[protein]
-        '''
-        
         if protein in hu_go:
             for term in hu_go[protein][1]:
                 if term in GO:
@@ -102,6 +124,16 @@ def GetHumanProteinData(hu_prots, hu_go, go_obo_file, mohuHits):
 
 
 def GetOrganism(desc_names):
+    """ Get the list of organisms (mouse, human or both) that a paper studies from the
+     PubMed XML description file
+    
+    Args:
+        desc_names: the list of mesh terms that describe a paper
+    
+    Returns:
+        The names of the organism concatenated by ampersands
+    """"
+    
     names = []
     for name in desc_names:
         names.append(name[0])
@@ -116,6 +148,16 @@ def GetOrganism(desc_names):
         return "Other"
 
 def GetSinglePaperData(pmid):
+    """ Retrieves a paper data by its pmid from entrez which is a pubmed API to access publication data.
+    The data to retrieve is: mesh headings, publication types and organisms
+    
+    Args:
+        pmid: The pubmed id of the paper
+    
+    Returns:
+        Tuple: (List of mesh headings, list of publication types, organisms)
+    """
+    
     pmidHeadings = []
     handle = None
     pubtypes = []
@@ -133,6 +175,17 @@ def GetSinglePaperData(pmid):
         
 
 def GetPaperData(pmid_refs):
+    """ Create a dictionary the maps each paper pubmed id to the data the describe it including:
+    mesh headings, publication types and organisms.
+    
+    Args:
+        pmid_refs: dictionary that maps each paper to its list of citations
+    
+    Returns:
+        Dictionary: Dictionary that maps each paper to a tuple that has three elements: mesh headings,
+        publication types and organisms
+    """
+    
     pmid_data = {}
     for pmid in pmid_refs:
         paperData = GetSinglePaperData(pmid)
@@ -148,6 +201,15 @@ def GetPaperData(pmid_refs):
 
 
 def ParseMouseFasta(uniprot_mouse):
+    """ Parse mouse protein fasta file and store data in dictionary on file under mouse_uniprot_proteins
+    
+    Args:
+        uniprot_mouse: The name of the mouse protein fasta file
+    
+    Returns:
+        None
+    """
+    
     mouse_prots = {}
     count = 0
     for seq_record in SeqIO.parse(uniprot_mouse, "fasta"):
@@ -162,6 +224,16 @@ def ParseMouseFasta(uniprot_mouse):
 
 
 def GetMeshData(mesh_tree):
+    """Parses mesh tree bin file and stores the mesh terms along with their ids, parents, ancestors 
+    and categories on file mesh_data_final.pik
+    
+    Args:
+        mesh_tree: The name of the mesh bin flat file
+    
+    Returns:
+        Dictionary: Dictionar that maps each mesh term to a tuple of its ids, parents, categories
+        and ancestors
+    """
     meshData = {}
     MD = {}
     with open(mesh_tree) as f:
@@ -207,34 +279,40 @@ def GetMeshData(mesh_tree):
 
 
 if __name__ == "__main__":
+    """ Main function that shows examples of function calls in this module:
     
-    '''
+    - Parse mouse protein fasta file and store data on disk:
+    
+    uniprot_mouse = "uniprot-mouse.fasta"
+    ParseMouseFasta(uniprot_mouse)
+    
+    
+    - Get the mouse protein data and store it in flat file:
+    
     mouse_goa = "gene_association.goa_mouse"
     obo_file = "go.obo"
     uniprot_prots = cp.load(open("mouse_uniprot_proteins"))
     homologs = cp.load(open("data/mouse_homologs.pik"))
     data = GetMouseProteinData(mouse_goa, obo_file, uniprot_prots, homologs)
-    '''
     
-    '''
+    
+    - Get the human protein data and store it in flat file:
+    
     human_prots = "human_proteins.fasta"
     human_go = cp.load(open("human_go.pik"))
     obo_file = "go.obo"
     homolog_prots = cp.load(open("mohuHits.pik"))
-    data = GetHumanProteinData(human_prots, human_g    for term in meshData:
-o, obo_file, homolog_prots)
-    '''
+    data = GetHumanProteinData(human_prots, human_go, obo_file, homolog_prots)
     
-    '''
+    
+    - Get the papers data:
+    
     mouse_cits = cp.load(open("pmid_pmid_mouse"))
     data = GetPaperData(mouse_cits)
-    '''
     
+    - Parse the mesh tree bin file and store the structure on disk
     
     mesh_tree = "../data/mesh_tree.bin"
     GetMeshData(mesh_tree)
     
-    '''
-    uniprot_mouse = "uniprot-mouse.fasta"
-    ParseMouseFasta(uniprot_mouse)
-    '''
+    """

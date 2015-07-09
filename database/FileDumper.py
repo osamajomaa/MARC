@@ -1,3 +1,9 @@
+"""
+Author: Osama Jomaa
+
+This module dumps all the protein, paper and mesh data I have in flat files into MARC DB
+"""
+
 import cPickle
 import DB
 import sys
@@ -6,50 +12,67 @@ import MeshTerm
 DATABASE_NAME = "MarcDB"
 
 def dump_proteins(proteinList, db):
+    """ Dump all the protein data I have in proteinList into protein collection in MARC DB using
+    DB module
+    
+    Args:
+        proteinList: List of proteins to dump
+    """
     for protein in proteinList:
-        '''
-        if i == 25:
-            print "i == 25"
-        seq = proteinList[protein][1]
-        if seq != "" and type(proteinList[protein][1] is not str):
-            seq = proteinList[protein][1]._data
-        else:
-            print seq
-        p = Protein.Protein(protein,
-                            proteinList[protein][0],
-                            seq,
-                            proteinList[protein][2],
-                            proteinList[protein][3],
-                            proteinList[protein][4])
-        '''
         if proteinList[protein].sequence != "" and type(proteinList[protein].sequence is not str):
                     proteinList[protein].sequence = proteinList[protein].sequence._data
         DB.InsertProtein(proteinList[protein], db)
 
 def dump_papers(paperList, db):
+    """ Dump all the paper data I have in paperList into paper collection in MARC DB using
+    DB module
+    
+    Args:
+        paperList: List of papers to dump
+    """
     for paper in paperList:
         DB.InsertPaper(paperList[paper], db)
         
 def dump_MeshTerms(termList, db):
+    """ Dump all the mesh data I have in termList into mesh collection in MARC DB using
+    DB module
+    
+    Args:
+        termList: List of mesh terms to dump
+    """
     for term in termList:
         DB.InsertMeshTerm(termList[term], db)
 
 
 if __name__ == "__main__":
-    #huProts = cPickle.load(open("data/human_proteins.pik"))
-    #mesh = cPickle.load(open("../data/mesh_data2.pik"))
-    #huProts = cPickle.load(open("data/human_proteins.pik"))
-    #papers  = cPickle.load(open("data/papers.pik"))
-    #terms   = cPickle.load(open("data/mesh_data.pik"))
+    """ Main function that shows examples of how to connect to the database and dump protein, papers
+    and mesh data:
+    
+    - First, load the pickle files of the human and mouse proteins, papers, and mesh terms
+    
+    huProts = cPickle.load(open("data/human_proteins.pik"))
+    muProts = cPickle.load(open("data/mouse_proteins.pik"))
+    papers  = cPickle.load(open("data/papers.pik"))
+    terms   = cPickle.load(open("../data/mesh_data_final.pik"))
+    
+    - Connect to the database:
     
     dbClient = DB.Connect()
     db = DB.GetDatabase(dbClient, DATABASE_NAME)
-    terms   = cPickle.load(open("../data/mesh_data_final.pik"))
+    
+    - Dump the files:
+    
     dump_MeshTerms(terms, db)
-    #paper_cits = cPickle.load(open("../data/paper_cits.pik"))
-    #DB.update(paper_cits, db)
-    #dump_MeshTerms(mesh, db)
-    #dump_proteins(huProts, db)
-    #dump_papers(papers, db)
-    #dump_MeshTerms(terms, db)
+    dump_proteins(huProts, db)
+    dump_proteins(muProts, db)
+    dump_papers(papers, db)
+    
+    - Load paper citations:
+    
+    paper_cits = cPickle.load(open("../data/paper_cits.pik"))
+    
+    - Add citations to database:
+    
+    DB.update(paper_cits, db)
+
     

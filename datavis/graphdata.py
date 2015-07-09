@@ -1,3 +1,11 @@
+"""
+Author: Osama Jomaa
+
+This module includes functions that create graph files in GEXF format. Cytoscape does not accept files
+in this format, therefore these files can be opened using Gefi software, converted to graphml format, 
+and then rendered using Cytoscape.
+"""
+
 import sys
 sys.path.append("../objects")
 sys.path.append("../database")
@@ -11,10 +19,21 @@ import os
 from xml.etree.ElementTree import Element, SubElement, tostring
 import cPickle
 
-
+#Constant variable which is the name of the database
 DATABASE_NAME = "MarcDB"
 
+
 def getMeshAncestors(term, db):
+    """ Returns the list of ancestor terms and their categories for an imput mesh term
+    
+    Args:
+        term (String): The name of the mesh term
+        db (Database): The database class instance
+        
+    Returns:
+        List of Strings: List of the names of the mesh categories that the term ancestors fall under
+        List of Strings: List of the names of the mesh ancestors
+    """
     projects = {"AncestorsList":1, "Categories":1}
     query = {"Name":term}
     data = dbase.find(projects, "MeshTerm", query, db)
@@ -38,12 +57,32 @@ def getMeshAncestors(term, db):
 
 
 def createXMLElement(parent, title, text, attributes):
+    """ Creates an XML tag element in the GEXF file
+    
+    Args:
+        parent (Element): The parent tag that contains the new tag element
+        title (String): The title of the new tag element
+        text (String): The text of the new tag element, if any.
+        attributes (List of Attribute): List of the attribute pairs (name, value) that the new tag element has
+        
+    Returns:
+        Element: The newly created XML tag element
+    """
     element = SubElement(parent, title, attributes)
     if text != '':
         element.text = text
     return element
 
 def createGEXFHeader():
+    """ Creates the Header tag for XML file which contains version, encoding and metadata information
+    including the name of the graph creator and a brief description.
+    
+    Args:
+        None
+    
+    Returns:
+        Element: The root element of the XML file
+    """
     root = Element('gexf')
     root.set('version', '1.0')
     root.set('encoding', 'UTF-8')
@@ -54,7 +93,16 @@ def createGEXFHeader():
     description.text = "MARC Papers Graph"    
     return root
 
+
 def getMeshCats():
+    """ Generates a dictionary of the 16 top-level mesh categories with their corresponding number values
+    
+    Args:
+        None
+    
+    Returns:
+        Dictionary: mapping of the mesh 16 top-level terms with their number values
+    """
     meshCats = {}
     meshCats["Anatomy"] = "0"
     meshCats["Organisms"] = "1"
@@ -74,13 +122,24 @@ def getMeshCats():
     meshCats["Geographicals"] = "15"
     return meshCats
 
+
 def getpathCondsCats(ancs):
+    
     dbClient = dbase.Connect()
     db = dbase.GetDatabase(dbClient, DATABASE_NAME)
     res = dbase.findByAncestor(ancs, db)
     return res
 
 def getTermsAtDepth(depth, cat):
+    """ Returns a list of the mesh terms that are at depth <= depth
+    
+    Args:
+        depth (int): a numeric value of the max depth
+        cat (String): the name of the mesh cat
+    
+    Returns:
+        List of Strings: List of the names of the mesh terms at depth <= depth
+    """
     dbClient = dbase.Connect()
     db = dbase.GetDatabase(dbClient, DATABASE_NAME)
     res = dbase.findTermsAtDepth(db, depth, cat)
@@ -88,10 +147,14 @@ def getTermsAtDepth(depth, cat):
     
 
 def writeXML(root, output):
+    """Writes an XML instance object to file
     
-    #xml = minidom.parseString(tostring(root))
+    Args:
+        root (Element): The instance object that contains the whole XML structure in memory
+        output (String): The name of the output file to store the XML structure
+    """
+
     f = open(output, 'w')
-    #f.write(xml.toprettyxml())
     f.write(tostring(root))
     f.close()  
 
@@ -104,6 +167,15 @@ def reHash(meshData):
 
 
 def cited(paper_id, pmid):
+    """ Check if a a paper which id is pmid is cited by the paper which has the paper_id
+    
+    Args:
+        paper_id (String): The pmid of the citing paper
+        pmid (String): The pmid of the potential cited paper
+    
+    Returns:
+        bool: True if pmid is cited by paper_id, false otherwise.
+    """
     for idd in paper_id:
         if pmid in paper_id[idd][1]:
             return True
@@ -112,6 +184,17 @@ def cited(paper_id, pmid):
 
 
 def createCatFile(depth, cat, fileName):
+    """Generates a dictionary that maps the mesh categories that are at depth <= depth with the list 
+    of papers that are annotated to them and writes the dictionary to a pickled file named fileName.
+    
+    Args:
+        depth (int): minimum depth that the subcategory must have from the its parent category cat
+        cat (String): The name of the parent category
+        fileName: The name of the file to write the dictionary to
+    
+    Returns:
+        None
+    """
     meshData = cPickle.load(open("../data/mesh_data2.pik"))
     paper_cats = OrderedDict()
     pathConds = getTermsAtDepth(depth, cat)
@@ -121,15 +204,11 @@ def createCatFile(depth, cat, fileName):
     dbClient = dbase.Connect()
     db = dbase.GetDatabase(dbClient, DATABASE_NAME)
     papers = dbase.getAll({},"Paper", db)
-    count = 0
     for paper in papers:
-        #descSet = Set()
         if "MeshHeadings" in paper:
             for term in paper["MeshHeadings"]:
                 if term["Descriptor"] in meshData and term["Descriptor"] in pathConds:
                     paper_cats[term["Descriptor"]].add(paper["PMID"])
-        print count
-        count += 1;
     
     paper_count = OrderedDict()
     for cat in paper_cats:
@@ -140,10 +219,34 @@ def createCatFile(depth, cat, fileName):
     fHandler = open(fileName, 'w')
     cPickle.dump(paper_count, fHandler)
     fHandler.close()
-    print "Finish!"
     
 
 def createGEXFWithDepth(catFile, top, fileName, edge_file):
+    """ Creates a GEXF graph file that contains the citation networks. This graph contains:
+    1) Metadata at the root element
+    2) Attribute List
+    3) Node List
+    4) Edge List
+    
+    This function also creates a dictionary that maps each category in the catFile with a list of tuples
+    (5 element structure) which contains:
+    (0, 1, 2, 3, 4) = (total number of citations in category cat,
+                                        number of intra citations in category cat,
+                                        number of inter-citing citations between category cat and other category,
+                                        number of inter-cited citations between category cat and other category,
+                                        number of isolated nodes annotated to category cat,
+                                        total number of papers annotated to category cat)
+    It also writes this dictionary on file named edge_file
+    
+    Args:
+        catFile: The name of the mesh categories-papers dictionary file
+        top: The number of the categories that have the largest number of papers annotated to them
+        fileName: The name of the GEXF graph file to be stored on disk
+        edge_file: The name of the output file that contains the categories stats
+    
+    Returns:
+        None
+    """
     meshData = cPickle.load(open("../data/mesh_data2.pik"))
     root = createGEXFHeader()
     cfile = cPickle.load(open(catFile))
@@ -185,13 +288,6 @@ def createGEXFWithDepth(catFile, top, fileName, edge_file):
     edges = createXMLElement(graph, 'edges', '', {})
     count = 0
     cat_record = {}
-    ''' cat_record[cat](0, 1, 2, 3, 4) = (total number of citations in category cat,
-                                        number of intra citations in category cat,
-                                        number of inter-citing citations between category cat and other category,
-                                        number of inter-cited citations between category cat and other category,
-                                        number of isolated nodes annotated to category cat,
-                                        total number of papers annotated to category cat)
-    '''
     for cat in pathConds:
         cat_record[cat] = [0,0,0,0,0,0]
     for pmid in paper_id:
@@ -228,262 +324,19 @@ def createGEXFWithDepth(catFile, top, fileName, edge_file):
     fHandler.close()
     
 
-def createPaperDiseaseGEXF(catFile, top):
-    meshData = cPickle.load(open("../data/mesh_data2.pik"))
-    root = createGEXFHeader()
-    pathConds = getpathCondsCats(["C04"])
-    graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
-    attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
-    createXMLElement(attributes, 'attribute', '', {'id':'1', 'title':'PubTypes', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'2', 'title':'Descriptors', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'3', 'title':'Qualifiers', 'type':'string'})
-    dbClient = dbase.Connect()
-    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
-    papers = dbase.getAll({},"Paper", db)
-    nodes = createXMLElement(graph, 'nodes', '', {})
-    count = 0
-    paper_id = {}
-    for paper in papers:
-        #print paper
-        pubTypes = Set()
-        if "PubTypes" in paper:
-            for ptype in paper["PubTypes"]:
-                pubTypes.add(ptype)
-        descSet = Set()
-        qualSet = Set()
-        if "MeshHeadings" in paper:
-            for term in paper["MeshHeadings"]:
-                if term["Descriptor"] in meshData:
-                    descSet.add(str(term["Descriptor"]))
-                    ancD = Set(meshData[term["Descriptor"]].ancestors)
-                    [descSet.add(each) for each in ancD]
-                for qual in term["Qualifiers"]:
-                    qualSet.add(str(qual))
-        
-        interDesc = descSet & pathConds
-        if len(interDesc) > 0:
-            descStr = ""
-            pubTypeStr = ""
-            qualStr= ""
-            for desc in interDesc:
-                descStr += desc + '&'
-            for qual in qualSet:
-                qualStr += qual + '&'
-            for pub in pubTypes:
-                pubTypeStr += pub + '&'
-            
-            if len(descStr) > 0:
-                descStr = descStr[:-1]
-            if len(pubTypeStr) > 0:
-                pubTypeStr = pubTypeStr[:-1];
-            if len(qualStr) > 0:
-                qualStr = qualStr[:-1]
-
-            paper_id[paper["PMID"]] = (str(count), paper["Citations"])
-            node = createXMLElement(nodes, 'node', '', {"id":str(count), "label":paper["PMID"]})
-            attvalues = createXMLElement(node, 'attvalues', '', {})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"1", "value":pubTypeStr})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"2", "value":descStr})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"3", "value":qualStr})
-            print count
-            count = count + 1
-        
-    edges = createXMLElement(graph, 'edges', '', {})
-    count = 0
-    for pmid in paper_id:
-        source = paper_id[pmid][0]
-        for cit in paper_id[pmid][1]:
-            if cit in paper_id:                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-                createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":paper_id[cit][0]})
-                count += 1
-            
-    writeXML(root,'../data/Graphs/neoplasms.gexf')
-
-
-
-
-'''
-def createPaperDiseaseGEXF():
-    meshData = cPickle.load(open("../data/mesh_data2.pik"))
-    all_papers = cPickle.load(open("../data/papers.pik")).keys()
-    #meshData = reHash(meshData)
-    root = createGEXFHeader()
-    meshCats = getMeshCats()
-    graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
-    attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
-    for categ in meshCats:
-        attribute = createXMLElement(attributes, 'attribute', '', {'id':meshCats[categ], 'title':categ, 'type':'boolean'})
-        createXMLElement(attribute, 'default', 'false', {})
-    createXMLElement(attributes, 'attribute', '', {'id':'16', 'title':'PubTypes', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'17', 'title':'Descriptors', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'18', 'title':'Qualifiers', 'type':'string'})
-    dbClient = dbase.Connect()
-    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
-    papers = dbase.getAll({},"Paper", db)
-    nodes = createXMLElement(graph, 'nodes', '', {})
-    count = 0
-    
-    paper_id = {}
-    for paper in papers:
-        cits = False
-        for cit in paper["Citations"]:
-            if cit in all_papers:
-                cits = True
-                break
-        
-        if len(paper["CitedBy"]) == 0 and cits == False:
-            continue
-        print "Citations = " + str(cits)
-        print "CitedBy = " + str(len(paper["CitedBy"]))
-        pubTypes = ";"
-        descriptors = ";"
-        qualifiers = ";"
-        if "PubTypes" in paper:
-            for ptype in paper["PubTypes"]:
-                pubTypes += ptype+";"
-        catSet = Set()
-        descSet = Set()
-        qualSet = Set()
-        if "MeshHeadings" in paper:
-            for term in paper["MeshHeadings"]:
-                #for x in meshData:
-                 #   print meshData[x]
-                if term["Descriptor"] in meshData:
-                    ancD = Set(meshData[term["Descriptor"]].ancestors)
-                    catsD = Set(meshData[term["Descriptor"]].category)
-                    #catsD, ancD = getMeshAncestors(term["Descriptor"], db)
-                    [catSet.add(each) for each in catsD]
-                    [descSet.add(each) for each in ancD]
-                for qual in term["Qualifiers"]:
-                    qualSet.add(qual)
-                    
-        for desc in descSet:
-            if desc != '':
-                descriptors += desc+";"
-        for qual in qualSet:
-            if qual != '':
-                qualifiers += qual+";"
-        
-        if "Neoplasms" in descriptors:
-            paper_id[paper["PMID"]] = (str(count), paper["Citations"])
-            node = createXMLElement(nodes, 'node', '', {"id":str(count), "label":paper["PMID"]})
-            attvalues = createXMLElement(node, 'attvalues', '', {})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"16", "value":pubTypes})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"17", "value":descriptors})
-            createXMLElement(attvalues, 'attvalue', '', {"for":"18", "value":qualifiers})
-            for cat in catSet:
-                createXMLElement(attvalues, 'attvalue', '', {"for":meshCats[cat], "value":"true"})
-            print count
-            count = count + 1
-        
-    edges = createXMLElement(graph, 'edges', '', {})
-    count = 0
-    for pmid in paper_id:
-        source = paper_id[pmid][0]
-        for cit in paper_id[pmid][1]:
-            if cit in paper_id:                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-                createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":paper_id[cit][0]})
-                count += 1
-            
-    writeXML(root,'No_Singletons/neoplasms.gexf')
-
-
-def createPapersGEXF():
-    meshData = cPickle.load(open("../data/mesh_data2.pik"))
-    #meshData = reHash(meshData)
-    root = createGEXFHeader()
-    meshCats = getMeshCats()
-    graph = createXMLElement(root, 'graph', '', {'defaultedgetype':'directed'})
-    attributes = createXMLElement(graph, 'attributes', '', {'class':'node'})
-    for categ in meshCats:
-        attribute = createXMLElement(attributes, 'attribute', '', {'id':meshCats[categ], 'title':categ, 'type':'boolean'})
-        createXMLElement(attribute, 'default', 'false', {})
-    createXMLElement(attributes, 'attribute', '', {'id':'16', 'title':'PubTypes', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'17', 'title':'Descriptors', 'type':'string'})
-    createXMLElement(attributes, 'attribute', '', {'id':'18', 'title':'Qualifiers', 'type':'string'})
-    dbClient = dbase.Connect()
-    db = dbase.GetDatabase(dbClient, DATABASE_NAME)
-    papers = dbase.getAll({},"Paper", db)
-    nodes = createXMLElement(graph, 'nodes', '', {})
-    count = 0
-    
-    paper_id = {}
-    for paper in papers:
-        paper_id[paper["PMID"]] = (str(count), paper["Citations"])
-        pubTypes = ";"
-        descriptors = ";"
-        qualifiers = ";"
-        for ptype in paper["PubTypes"]:
-            pubTypes += ptype+";"
-        catSet = Set()
-        descSet = Set()
-        qualSet = Set()
-        for term in paper["MeshHeadings"]:
-            #for x in meshData:
-             #   print meshData[x]
-            if term["Descriptor"] in meshData:
-                ancD = Set(meshData[term["Descriptor"]].ancestors)
-                catsD = Set(meshData[term["Descriptor"]].category)
-                #catsD, ancD = getMeshAncestors(term["Descriptor"], db)
-                [catSet.add(each) for each in catsD]
-                [descSet.add(each) for each in ancD]
-            for qual in term["Qualifiers"]:
-                qualSet.add(qual)
-
-        for desc in descSet:
-            if desc != '':
-                descriptors += desc+";"
-        for qual in qualSet:
-            if qual != '':
-                qualifiers += qual+";"
-        
-        node = createXMLElement(nodes, 'node', '', {"id":str(count), "label":paper["PMID"]})
-        attvalues = createXMLElement(node, 'attvalues', '', {})
-        createXMLElement(attvalues, 'attvalue', '', {"for":"16", "value":pubTypes})
-        createXMLElement(attvalues, 'attvalue', '', {"for":"17", "value":descriptors})
-        createXMLElement(attvalues, 'attvalue', '', {"for":"18", "value":qualifiers})
-        for cat in catSet:
-            createXMLElement(attvalues, 'attvalue', '', {"for":meshCats[cat], "value":"true"})
-        print count
-        count = count + 1
-        
-    edges = createXMLElement(graph, 'edges', '', {})
-    count = 0
-    for pmid in paper_id:
-        source = paper_id[pmid][0]
-        for cit in paper_id[pmid][1]:
-            if cit in paper_id:                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-                createXMLElement(edges, 'edge', '', {"id":str(count), "source":source, "target":paper_id[cit][0]})
-                count += 1
-            ../data/
-    writeXML(root,'output.xml')
-'''
-
 if __name__ == "__main__":
-    #print os.getcwd()
-    #createCatFile(3, "C04", "../data/FamousCats/neoplasmOrdered.pik")
-    #createGEXFWithDepth("../data/FamousCats/neoplasmOrdered.pik", 10, "../data/FamousCats/GraphFiles/Neoplasm.gexf")
+    """ This main function contain example function calls to create a category, graph and
+    edge stats files for neoplasm category
+    
+    createCatFile(3, "C04", "../data/FamousCats/neoplasmOrdered.pik")
+    createGEXFWithDepth("../data/FamousCats/neoplasmOrdered.pik", 10, "../data/FamousCats/GraphFiles/Neoplasm.gexf", "../data/Edge_Desc/neoplasm_edge_desc.pik")
+    
+    Other examples for creating GEXF files for other disease sub-categories:
+    
     #createGEXFWithDepth("../data/FamousCats/animalDiseaseOrdered.pik", 10, "../data/FamousCats/GraphFiles/animalDisease.gexf", "../data/Edge_Desc/animal_edge_desc.pik")
     #createGEXFWithDepth("../data/FamousCats/cogenitalOrdered.pik", 10, "../data/FamousCats/GraphFiles/cogenitalDisease.gexf", "../data/Edge_Desc/congenital_edge_desc.pik")
     #createGEXFWithDepth("../data/FamousCats/digestiveOrdered.pik", 10, "../data/FamousCats/GraphFiles/digestiveDisease.gexf", "../data/Edge_Desc/digestive_edge_desc.pik")
     #createGEXFWithDepth("../data/FamousCats/neuroSystemOrdered.pik", 10, "../data/FamousCats/GraphFiles/neuroSystemDisease.gexf", "../data/Edge_Desc/neuro_edge_desc.pik")
     #createGEXFWithDepth("../data/FamousCats/nutritionalOrdered.pik", 10, "../data/FamousCats/GraphFiles/nutritionalDisease.gexf", "../data/Edge_Desc/nutritional_edge_desc.pik")
-    
-    
-    dict = cPickle.load(open("../data/Edge_Desc/neoplasm_edge_desc.pik"))
-    
-    sum = 0
-    allSum = 0
-    for a in dict:
-        v1 = float(dict[a][1])/(dict[a][0])
-        v2 = float(dict[a][2]+dict[a][3])/(dict[a][0])
-        print "Intra = " + str(v1)
-        print "Inter = " + str(v2)
-        print "----------"
-    
-    #print sum
-    #print "all", str(allSum)
-    
-    #print dict
-    
+"""
     

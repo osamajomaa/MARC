@@ -1,6 +1,21 @@
+"""
+Author: Osama Jomaa
+
+This module includes a function that maps each paper to the papers that cite it
+"""
+
 import cPickle as cp
 
 def getCitedBy(paperList):
+    """ Map each paper in the paper list to the papers that cite it and write the resulting 
+    dictionary to paper_cits.pik file
+    
+    Args:
+        paperList: List of papers
+    
+    Returns:
+        None
+    """
     paper_cits = {}
     for paper in paperList:
         paper_cits[paper] = []
