@@ -1,3 +1,13 @@
+"""
+Author: Osama Jomaa
+
+Date: 2014-2015
+
+Version: 1.0
+
+This is a parser for the blast XML hit files. It extracts the homologs for the query mouse proteins,
+and store them in a dictionary that maps each mouse protein id to it's list of homologs. 
+"""
 from Bio.Blast import NCBIXML
 import cPickle
 import os
@@ -5,7 +15,16 @@ import os
 RESULTS_PATH = "BLAST/Results"
 
 def get_blast_hits():
-
+    """ Parses a group of blast hit XML files in the BLAST/Results folder to extract the list of 
+    homologs for each queried mouse protein and stores them in a dictionary and writes it to a file
+    under the name mouse_homologs.pik
+    
+    Args:
+        None
+    
+    Returns:
+        None
+    """
     files = os.listdir(RESULTS_PATH)
     homologs = {}
     count = 1
@@ -28,5 +47,7 @@ def get_blast_hits():
     fHandler.close()
 
 if __name__ == "__main__":
+    """ This is the main function that calls the hit parser for the list of blast hit XML files
+    
     get_blast_hits()
-    print "Finish!"
+    """

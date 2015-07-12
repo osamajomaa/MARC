@@ -1,6 +1,10 @@
 """
 Author: Osama Jomaa
 
+Date: 2014-2015
+
+Version: 1.0
+
 This module includes functions that create graph files in GEXF format. Cytoscape does not accept files
 in this format, therefore these files can be opened using Gefi software, converted to graphml format, 
 and then rendered using Cytoscape.

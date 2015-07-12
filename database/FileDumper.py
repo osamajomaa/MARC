@@ -1,6 +1,10 @@
 """
 Author: Osama Jomaa
 
+Date: 2014-2015
+
+Version: 1.0
+
 This module dumps all the protein, paper and mesh data I have in flat files into MARC DB
 """
 
@@ -74,5 +78,5 @@ if __name__ == "__main__":
     - Add citations to database:
     
     DB.update(paper_cits, db)
-
+    """
     

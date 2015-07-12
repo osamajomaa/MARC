@@ -1,3 +1,12 @@
+"""
+Author: Osama Jomaa
+
+Date: 2014-2015
+
+Version: 1.0
+
+This module creates fasta files from a list of proteins
+"""
 from Bio.Seq import Seq
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -8,7 +17,15 @@ import cPickle as cp
 
 
 def create_FASTA_file(proteins):
+    """ Create a fasta file from a dictionary of mouse proteins and their corresponding sequences and store
+    it on disk under the name mouse.fasta
     
+    Args:
+        proteins: A dictionary that maps the mouse protein ids to their sequences
+    
+    Returns:
+        None
+    """
     frecords = []
     count = 0
     for prot in proteins:
@@ -25,6 +42,9 @@ def create_FASTA_file(proteins):
     print "count = ", count
 
 if __name__ == "__main__":
-    
+    """ This is the main function that loads the mouse protein dictionary into memory and calls the fasta
+    file creating function
+
     mouse_prots = cp.load(open("mouse_proteins.pik"))
     create_FASTA_file(mouse_prots)
+    """

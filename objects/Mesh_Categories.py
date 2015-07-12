@@ -1,3 +1,14 @@
+"""
+Author: Osama Jomaa
+
+Date: 2014-2015
+
+Version: 1.0
+
+This module contains a dictionary that maps each of the 16 top-level mesh categories to their letters
+"""
+
+
 Mesh_Cats = {
 
 	"A": "Anatomy",

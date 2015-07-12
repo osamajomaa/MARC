@@ -1,6 +1,10 @@
 """
 Author: Osama Jomaa
 
+Date: 2014-2015
+
+Version: 1.0
+
 This module parses the gene association files and fasta files to extract data about mouse and human 
 papers and proteins and store them in flat files
 """

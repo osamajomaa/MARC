@@ -1,6 +1,10 @@
 """
 Author: Osama Jomaa
 
+Date: 2014-2015
+
+Version: 1.0
+
 This module includes a function that maps each paper to the papers that cite it
 """
 
@@ -29,5 +33,8 @@ def getCitedBy(paperList):
 
 
 if __name__ == "__main__":
+    """ This is the main function that contains example function calls
+    
     papers = cp.load(open("../data/papers.pik"))
     getCitedBy(papers)
+    """
