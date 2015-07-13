@@ -1,4 +1,5 @@
 # MARC - Mouse humAn Research Classifier
+
 ### The Problem
 In a study published in PNAS biomedical journal in 2010, a group of researchers studied the correlation in transcriptional responses between mouse and human. The researchers studied three different diseaseses: Burn, Trauma and Endotoxemia and found out that there was poor to no correlation in the genomic responses between mouse and human, let alon within mice themselves. This shows that mouse is still not a perfect lab animal! Therefore it's important to identify research areas suitable to use mosue as a model organism to study human diseases. That's where MARC comes!
 
@@ -144,4 +145,3 @@ This modules contains the classes that represent document in each Protein, Paper
 
 #####4. datavis
 **graphdata.py** includes functions that create graph files in GEXF format. **getCitedBy.py** is just a helper module that include a function which maps each paper to its citations.
-
