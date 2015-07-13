@@ -79,56 +79,56 @@ $ mongorestore <path to backup directory>
 
 3. Show all collections(tables) in a database:
 
-```sh
-  $ show collections
-```
+  ```sh
+    $ show collections
+  ```
 4. Show all documents(rows) in a collection:
 
-```sh
-  $ db.<collection name>.find()
-```
+  ```sh
+    $ db.<collection name>.find()
+  ```
 5. Show only one documents from a collection:
 
-```sh
-  $ db.<collectin name>.findOne()
-```
-Queries to a Mongo database are in JSON format; {Key:Value}
+  ```sh
+    $ db.<collectin name>.findOne()
+  ```
+  Queries to a Mongo database are in JSON format; {Key:Value}
 
 6. Find Exact Matching. Find the paper with the PMID=9642104:
 
-```sh
-  $ db.Paper.find({PMID:"9642104"})
-```
+  ```sh
+    $ db.Paper.find({PMID:"9642104"})
+  ```
 7. Find in array. Find all papers that has the publication type is journal article where the field PubTypes is of type array:
 
-```sh
-  $ db.Paper.find({PubTypes:"Journal Article"})
-```
+  ```sh
+    $ db.Paper.find({PubTypes:"Journal Article"})
+  ```
 8. Query field of an embedded document. Find all papers that has a "Aggrecans" as a mesh descriptor in the mesh headings array:
 
-```sh
-  $ db.Paper.find({"MeshHeadings.Descriptor":"Aggrecans"})
-```
-***Notice*** the use of quotations around the name of the array and subfield when querying an embedded document
+  ```sh
+    $ db.Paper.find({"MeshHeadings.Descriptor":"Aggrecans"})
+  ```
+  ***Notice*** the use of quotations around the name of the array and subfield when querying an embedded document
 
 9. Get all ancestors of the "Genetic Code" mesh term in the mesh vocabulary:
 
-```sh
-  $ db.MeshTerm.find({Name:"Genetic Code"}, {AncestorsList:1})
-```
-***Notice*** the 1 is used to limit the fields returned to AncestorsList for all matching documents
+  ```sh
+    $ db.MeshTerm.find({Name:"Genetic Code"}, {AncestorsList:1})
+  ```
+  ***Notice*** the 1 is used to limit the fields returned to AncestorsList for all matching documents
 
 10. Get the names of all descendents of the "Genetic Phenomena" mesh term in the mesh vocabulary:
 
-```sh
-  $ db.MeshTerm.find({"AncestorsList.Ancestors":"Genetic Phenomena"}, {Name:1})
-```
+  ```sh
+    $ db.MeshTerm.find({"AncestorsList.Ancestors":"Genetic Phenomena"}, {Name:1})
+  ```
 
 11. Get the parent(s) codes of the "Genetic Code" mesh term in the mesh vocabulary:
 
-```sh
-  $ db.MeshTerm.find({Name:"Genetic Code"}, {Parents:1})
-```
+  ```sh
+    $ db.MeshTerm.find({Name:"Genetic Code"}, {Parents:1})
+  ```
 
 ### MARC Scripts
 I will list the script modules that I wrote to build MARC in order and what each does.
