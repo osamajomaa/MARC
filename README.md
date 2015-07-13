@@ -13,9 +13,9 @@ MARC is a project that aims to classify the literature that has been studied on 
 MARC first collects the mouse and human paper data from Uniprot-GOA database. It parses the gene association files for mouse and human to extract the protein the paper data. From the PMIDs for the mouse and human papers, it queries another database which is Scopus to get the citation list for each mouse paper. It then stores the paper and citation data in pickled files on disk. To get the MeSH vocabulary data, MARC parses the bin file that contains the entire vocabulary and store it in a special structure on disk. Finally, MARC reads the paper, protein and mesh data from the files on disk and dump the data in MARC Database.
 
 ### What Is MARC Composed Of?
-MARC is comprised of:
-1. **MARC Database**: A MongoDB database that contains data about the mouse and human papers in PubMed, the proteins that they study and the Medical Subject Heading terms that they're annotated to.
-2. ** MARC Scripts**: Python script files that parse data files and extract data, connect to the database and execute queries, build BLAST database and query it and build graph files.
+MARC is comprised of:<br>
+1. MARC Database: A MongoDB database that contains data about the mouse and human papers in PubMed, the proteins that they study and the Medical Subject Heading terms that they're annotated to.<br>
+2. MARC Scripts: Python script files that parse data files and extract data, connect to the database and execute queries, build BLAST database and query it and build graph files.
 
 ***
 ## MARC How-To Guide
