@@ -14,8 +14,8 @@ MARC first collects the mouse and human paper data from Uniprot-GOA database. It
 
 ### What Is MARC Composed Of?
 MARC is comprised of:<br>
-1. MARC Database: A MongoDB database that contains data about the mouse and human papers in PubMed, the proteins that they study and the Medical Subject Heading terms that they're annotated to.<br>
-2. MARC Scripts: Python script files that parse data files and extract data, connect to the database and execute queries, build BLAST database and query it and build graph files.
+**1. MARC Database:** A MongoDB database that contains data about the mouse and human papers in PubMed, the proteins that they study and the Medical Subject Heading terms that they're annotated to.<br>
+**2. MARC Scripts:** Python script files that parse data files and extract data, connect to the database and execute queries, build BLAST database and query it and build graph files.
 
 ***
 ## MARC How-To Guide
@@ -52,11 +52,12 @@ In this database we have three collections: Paper, Protein and MeshTerm. Here is
 + **TID**: The list of the term IDs
 + **Categories**: The list of categories that the term falls under in the 16 MeSH top-level categories
 + **Parents**: The list direct MeSH parents of the term
-+ **AncestorsList**: The list of the term MeSH ancestors
++ **AncestorsList**: The list of the term MeSH ancestors 
 
+<br>
 ##### Restoring a MongodB backup
-First you need to restore the binary backup in the MarcDB tar folder:
-1. Untar the MarcDB.tar.gz folder
+First you need to restore the binary backup in the MarcDB tar folder:<br>
+1. Untar the MarcDB.tar.gz folder<br>
 2. Execute this command in the terminal on a computer with MongoDB installed on it:
 ```sh
 $ mongorestore <path to backup directory>
@@ -65,56 +66,68 @@ $ mongorestore <path to backup directory>
 ##### Sample Queries
 
 1. View all databases in your database server:
-```sh
-$ show databases
-```
+
+  ```sh
+    $ show databases
+  ```
 2. Select a database to execute queries on:
-```sh
-$ use <db name>
-```
-***Note*** All the following commands can only be executed after you have selected a database (command #2).
+
+  ```sh
+    $ use <db name>
+  ```
+  ***Note*** All the following commands can only be executed after you have selected a database (command #2).
 
 3. Show all collections(tables) in a database:
+
 ```sh
-$ show collections
+  $ show collections
 ```
-4.  Show all documents(rows) in a collection:
+4. Show all documents(rows) in a collection:
+
 ```sh
-$ db.<collection name>.find()
+  $ db.<collection name>.find()
 ```
 5. Show only one documents from a collection:
+
 ```sh
-$ db.<collectin name>.findOne()
+  $ db.<collectin name>.findOne()
 ```
 Queries to a Mongo database are in JSON format; {Key:Value}
 
 6. Find Exact Matching. Find the paper with the PMID=9642104:
+
 ```sh
-$ db.Paper.find({PMID:"9642104"})
+  $ db.Paper.find({PMID:"9642104"})
 ```
 7. Find in array. Find all papers that has the publication type is journal article where the field PubTypes is of type array:
+
 ```sh
-$ db.Paper.find({PubTypes:"Journal Article"})
+  $ db.Paper.find({PubTypes:"Journal Article"})
 ```
 8. Query field of an embedded document. Find all papers that has a "Aggrecans" as a mesh descriptor in the mesh headings array:
+
 ```sh
-$ db.Paper.find({"MeshHeadings.Descriptor":"Aggrecans"})
+  $ db.Paper.find({"MeshHeadings.Descriptor":"Aggrecans"})
 ```
 ***Notice*** the use of quotations around the name of the array and subfield when querying an embedded document
 
 9. Get all ancestors of the "Genetic Code" mesh term in the mesh vocabulary:
+
 ```sh
-$ db.MeshTerm.find({Name:"Genetic Code"}, {AncestorsList:1})
+  $ db.MeshTerm.find({Name:"Genetic Code"}, {AncestorsList:1})
 ```
 ***Notice*** the 1 is used to limit the fields returned to AncestorsList for all matching documents
+
 10. Get the names of all descendents of the "Genetic Phenomena" mesh term in the mesh vocabulary:
+
 ```sh
-$ db.MeshTerm.find({"AncestorsList.Ancestors":"Genetic Phenomena"}, {Name:1})
+  $ db.MeshTerm.find({"AncestorsList.Ancestors":"Genetic Phenomena"}, {Name:1})
 ```
 
 11. Get the parent(s) codes of the "Genetic Code" mesh term in the mesh vocabulary:
+
 ```sh
-$ db.MeshTerm.find({Name:"Genetic Code"}, {Parents:1})
+  $ db.MeshTerm.find({Name:"Genetic Code"}, {Parents:1})
 ```
 
 ### MARC Scripts
