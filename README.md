@@ -67,9 +67,9 @@ $ mongorestore <path to backup directory>
 
 1. View all databases in your database server:
 
-  <code>
+  ```sh
     $ show databases
-  </code>
+  ```
 2. Select a database to execute queries on:
 
   ```sh
