@@ -3,9 +3,9 @@
 In a study published in PNAS biomedical journal in 2010, a group of researchers studied the correlation in transcriptional responses between mouse and human. The researchers studied three different diseaseses: Burn, Trauma and Endotoxemia and found out that there was poor to no correlation in the genomic responses between mouse and human, let alon within mice themselves. This shows that mouse is still not a perfect lab animal! Therefore it's important to identify research areas suitable to use mosue as a model organism to study human diseases. That's where MARC comes!
 
 ### What IS MARC Anyway?
-MARC is a project that aims to classify the literature that has been studied on mouse as a model organism for human disease research. It does this through citation networks and a controlled vocabulary which is Medical Subject Heading
+MARC is a project that aims to classify the literature that has been studied on mouse as a model organism for human disease research. It does this through citation networks and a controlled vocabulary which is Medical Subject Heading.
 
-** Citation Network**: It's a directed graph that connects citing papers to cited papers. It models the citation relationship between the citing mouse papers that cite human papers. These papers are then clustered into different classes of research using a unified medical vocabulary. 
+**Citation Network**: It's a directed graph that connects citing papers to cited papers. It models the citation relationship between the citing mouse papers that cite human papers. These papers are then clustered into different classes of research using a unified medical vocabulary. 
 
 **Medical Subject Heading**: It's a unified medical vocabulary that index papers in PubMed. It's organized in a DAG structure and contains 16 top level categories and over 27K terms altogether. MARC used MeSH to group the mouse and human papers in the citation networks into different classes of research
 
