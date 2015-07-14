@@ -147,6 +147,6 @@ This modules contains the classes that represent document in each Protein, Paper
 #####4. datavis
 **graphdata.py** includes functions that create graph files in GEXF format. **getCitedBy.py** is just a helper module that include a function which maps each paper to its citations.
 
-#### Prerequisite Libraries
+##### Prerequisite Libraries
 **1. Pymongo:** Python distribution containing tools for working with MongoDB.<br>
 **2. Biopython:** A set of freely available tools for biological computation written in Python by an international team of developers.
