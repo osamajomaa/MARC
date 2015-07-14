@@ -11,7 +11,8 @@ MARC is a project that aims to classify the literature that has been studied on 
 **Medical Subject Heading**: It's a unified medical vocabulary that index papers in PubMed. It's organized in a DAG structure and contains 16 top level categories and over 27K terms altogether. MARC used MeSH to group the mouse and human papers in the citation networks into different classes of research
 
 ### How Does MARC Work?
-MARC first collects the mouse and human paper data from Uniprot-GOA database. It parses the gene association files for mouse and human to extract the protein the paper data. From the PMIDs for the mouse and human papers, it queries another database which is Scopus to get the citation list for each mouse paper. It then stores the paper and citation data in pickled files on disk. To get the MeSH vocabulary data, MARC parses the bin file that contains the entire vocabulary and store it in a special structure on disk. Finally, MARC reads the paper, protein and mesh data from the files on disk and dump the data in MARC Database.
+MARC first collects the mouse and human paper data from Uniprot-GOA database. It parses the mouse and human gene association files to extract the protein the paper data. From the mouse and human PMIDs (PMID is the PubMed Identifier for a paper), it queries another database which is Scopus to get the citation list for each mouse paper. It then stores the paper and citation data in a pickled files on disk. To get the MeSH vocabulary data, MARC parses the MeSH file that contains the entire vocabulary in bin format and stores it in a special structure on disk. Finally, MARC reads the paper, protein and mesh data from the files on disk and dump the data in MARC Database.
+To build the citation networks, MARC pulls the paper and mesh data from the database, build the graph files in GEXF format using a graph file building algorithm. This algorithm filters the papers based on a) a minimum depth for the MeSH terms (they are annotated to) in MeSH tree and b) the number of papers in each MeSH category. The output graph file can be rendered using Gefi which is a graph visualization software. Or it could be converted to a graphml format using Gefi and rendered using Cytoscape.
 
 ### What Is MARC Composed Of?
 MARC is comprised of:<br>
@@ -24,10 +25,10 @@ In this tutorial I'm going to explain how MARC DB is organized and give example 
 
 ### MARC DB
 ##### Description
-MARCDB is a NoSQL database that stores data about:
-1. Mouse and human papers that describe proteins in the Uniprot-GOA database
-2. Mouse and human proteins in the Uniprot-GOA and GenBank database
-3. MeSH vocabulary that is used to annotate and describe papers in the MedLine database
+MARCDB is a NoSQL database that stores data about:<br>
+1. Mouse and human papers that describe proteins in the Uniprot-GOA database<br>
+2. Mouse and human proteins in the Uniprot-GOA and GenBank database<br>
+3. MeSH vocabulary that is used to annotate and describe papers in the MedLine database<br>
 
 #####Structure
 In this database we have three collections: Paper, Protein and MeshTerm. Here is a description for each collection:
@@ -132,7 +133,7 @@ $ mongorestore <path to backup directory>
   ```
 
 ### MARC Scripts
-I will list the script modules that I wrote to build MARC in order and what each does.
+I will list the script modules that I wrote to build MARC in order of use and what each one does:
 
 #####1. database
 This module collects the paper, protein and mesh data from different databases, store the data in files on disk and then dump it in MARC DB. It also contain the functionality necessary to connect to the database and execute queries against it. It comprises **MoPapersAndCits.py** which parses the mouse gene association and files to get the mouse proteins and human fasta files to get the human proteins. It also connects to PubMed Entrez API to get the MeSH annotations for each mouse and human paper and build a tree-like structure in a python dictionary and store it on file. **FileDumper.py** reads the paper, protein and mesh data files on disk, and write this data to MARC DB. **DB.py** contains the functions necessary to connect to the database, insert data to each of the three collections (Paper, Protein and MeshTerm) and exectue queries such as searching for a paper by its PMID or getting the list of ancestors for a particulary MeSH term. 
